@@ -1,38 +1,143 @@
+
+<% include /Users/tyfrith/dev/okta/app/views/functions.ejs %>
+
+
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
+  <script src="https://global.oktacdn.com/okta-signin-widget/3.5.0/js/okta-sign-in.min.js"
+          type="text/javascript"></script>
+  <link href="https://global.oktacdn.com/okta-signin-widget/3.5.0/css/okta-sign-in.min.css" type="text/css"
+        rel="stylesheet"/>
   <link rel="stylesheet"
         href="https://fonts.googleapis.com/css?family=Montserrat">
+  <link href='https://fonts.googleapis.com/css?family=Open+Sans:300' rel='stylesheet' type='text/css'>
+  <link rel="stylesheet" href="http://localhost:8080/style.css"/>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="X-UA-Compatible" content="ie=edge">
-  <title>DSE Sample App</title>
+  <title>Okta Tech Exercise</title>
 </head>
 <body style="font-family: Montserrat" >
-  <h1>My Applications and Rules</h1>
-  <% if (applications) {
-  %><ul>
-    <% applications.forEach((application) => {
-      %>
-        <div style="display:inline-block; padding:6px 6px 6px 6px; color: #555555; background-color: #87CEFA; border: #dddddd 2px solid; margin: 1em; width:; border-radius: 1em;">
-        <h2 style="color: black" ><%= application.name %></h2>
-          <ul style="color: black">
-            <li><%= `client_id: ${application.client_id}` %></li>
-            <li><%= `rules: ${application.rules.join(', ')}` %></li>
-          </ul>
-        </div>
-      <%
-    }) %>
-  </ul><%
-} %>
-  <!-- <a href="/expenses">Expenses</a> -->
-  <% if (user) { %>
-    <div>
-      <label><%= user.name %></label>
-      <button onclick="window.location = '/logout'">
-        Log out
-      </button>
+  
+<!-- <h1 style="text-align:center">Weather App</h1> -->
+
+   <div id="widget_container"></div>
+
+   <div id="weather_container">
+      <fieldset>
+        <form action="/" method="post">
+          <input name="city" type="text" id="ghost-input" placeholder="Enter a City" required>
+          <input type="submit" id="ghost-button" value="Get Weather">
+        </form>
+          <% if(weather !== null){ %>
+          <p><%= weather %></p>
+        <% } %>
+
+        <% if(error !== null){ %>
+          <p><%= error %></p>
+        <% } %>
+      </fieldset>
     </div>
-  <%}%>
+
+   <div id="message_box" style="text-align:center">Hi there, you aren't logged in</div>
+
+
+   <div style="text-align:center;">
+  <button id=logout_button onClick='logout(reload)'></button>
+  <!--   <button id=logout_button onClick='logout()'></button> -->
+   </div>
+
+
+<script type="text/javascript">
+  var oktaSignIn = new OktaSignIn({
+    baseUrl: 'https://dev-247908.okta.com',
+    //redirectUri: window.location.origin,
+    redirectUri: 'http://localhost:3000',
+    clientId: '0oafc88caXF4KFOmU4x6',
+    authParams: {
+      pkce: true,
+      responseType: ['token', 'id_token']
+      //display: page
+    }
+  });
+
+  oktaSignIn.authClient.session.get().then(function (res) {
+
+  // Session exists, show logged in state.
+    if (res.status === 'ACTIVE') {
+      console.log('Welcome back, ' + res.login);
+      document.getElementById("message_box").innerHTML = `Welcome back, ` + res.login;
+      document.getElementById("logout_button").innerHTML = `Logout`;
+      return;
+      oktaSignIn.authClient.token.getWithoutPrompt({
+        scopes: ['openid', 'email', 'profile'],
+      }).then((tokens) => {
+        tokens.forEach(token => {
+          if (token.idToken) {
+            oktaSignIn.authClient.tokenManager.add('idToken', token);
+          }
+          if (token.accessToken) {
+            oktaSignIn.authClient.tokenManager.add('accessToken', token);
+          }
+        });
+
+       // Say hello to the person who just signed in
+        oktaSignIn.authClient.tokenManager.get('idToken').then(idToken => {
+          console.log(`Hello, ${idToken.claims.name} (${idToken.claims.email})`);
+          document.getElementById("message_box").innerHTML = `Hello, ${idToken.claims.name} (${idToken.claims.email})`
+          document.getElementById("logout_button").innerHTML = `Logout`;
+       });
+      
+      }).catch(error => console.error(error));
+     // return;
+    }
+
+    document.getElementById("weather_container").style.display = 'none';
+
+    // No session, show the login form
+    oktaSignIn.renderEl(
+      {el: '#widget_container'},
+      function success(res) {
+        // document.getElementById("weather_container").style.display = 'none';
+        // Nothing to do in this case, the widget will automatically redirect
+        // the user to Okta for authentication, then back to this page if successful
+      },
+      function error(err) {
+        // handle errors as needed
+        console.error(err);
+      }
+    );
+  });
+      
+      function logout(other) {
+        if (oktaSignIn.authClient.signOut()) {
+
+          other();
+        }
+
+      }
+
+      function reload() {
+     // window.location.reload(true);
+        //onsole.log("RELOAD");
+      }
+
+  //     var logoutURL = " https://dev-247908.okta.com/logout";
+
+  //     var headers = {
+  //       "id_token_hint": 'oktaSignIn.authClient.tokenManager.token',
+  //       "post_logout_redirect_uri": 'http://localhost:3000'
+  //       }
+
+  //     function logout() {
+  //       fetch(logoutURL, { method: 'GET', headers: headers})
+  //         .then((res) => {
+  //         //return res.json()
+  //           console.log("done logged out")
+  // })}
+
+</script> 
 </body>
 </html>

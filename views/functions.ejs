@@ -1,0 +1,15 @@
+
+<%
+var logoutURL = " https://dev-247908.okta.com/logout";
+
+var headers = {
+  "id_token_hint": 'oktaSignIn.authClient.tokenManager.token',
+  "post_logout_redirect_uri": 'http://localhost:3000'}
+
+function logout() {
+  fetch(clientsUrl, { method: 'GET', headers: headers})
+  .then((res) => {
+     //return res.json()
+     console.log("done logged out")
+  })}
+  %>

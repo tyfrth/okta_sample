@@ -2,103 +2,56 @@ require('dotenv').config();
 const express = require('express');
 const http = require('http');
 const morgan = require('morgan');
-const {auth} = require('express-openid-connect');
-const path = require("path");
 const fetch = require("node-fetch");
+const bodyParser = require('body-parser');
+const request = require('request');
 
-const appUrl = process.env.BASE_URL || `http://localhost:${process.env.PORT}`;
+const appUrl = `http://localhost:${process.env.PORT}`;
 
 const app = express();
+
 app.set('view engine', 'ejs');
 app.use(morgan('combined'));
+app.use(bodyParser.urlencoded({extended: true}));
 
-app.use(auth({
-  auth0Logout: true,
-  baseURL: appUrl
-}));
 
 app.get('/', (req, res) => {
-  res.render('home',  { user: req.openid && req.openid.user, applications: leftover_rules_apps_array });
+  res.render('home', {weather: null, error: null});
 });
 
-// app.get('/expenses', (req, res) => {
-//   res.render('expenses', {
-//     expenses: [
-//       {
-//         date: new Date(),
-//         description: 'Coffee for a Coding Dojo session.',
-//         value: 42,
-//       }
-//     ]
-//   });
-// });
+app.post('/', function (req, res) {
+  let city = req.body.city;
+  let url = `http://api.openweathermap.org/data/2.5/weather?q=${city}&units=imperial&appid=${process.env.API_KEY}`
 
-var rulesUrl = "https://dev-pxhmaog0.auth0.com/api/v2/rules"
-var clientsUrl = "https://dev-pxhmaog0.auth0.com/api/v2/clients"
+  request(url, function (err, response, body) {
+    if(err){
+      res.render('home', {weather: null, error: 'Error, please try again'});
+    } else {
+      let weather = JSON.parse(body)
+      if(weather.main == undefined){
+        res.render('home', {weather: null, error: 'Error, please try again'});
+      } else {
+        let weatherText = `It's ${weather.main.temp} degrees in ${weather.name}!`;
+        res.render('home', {weather: weatherText, error: null});
+      }
+    }
+  });
+})
 
-//apps_array = new Array;
-leftover_rules_apps_array = new Array;
-//universal_rules_array = new Array;
+var logoutURL = " https://dev-247908.okta.com/logout";
 
 var headers = {
-  "Content-Type": "application/json",
-  "Authorization": `Bearer ${process.env.API_KEY}`}
+  "id_token_hint": 'oktaSignIn.authClient.tokenManager.token',
+  "post_logout_redirect_uri": 'http://localhost:3000'}
 
-fetch(clientsUrl, { method: 'GET', headers: headers})
+
+
+function logout() {
+  fetch(clientsUrl, { method: 'GET', headers: headers})
   .then((res) => {
-     return res.json()
-})
-  .then((json) => {
-  json.forEach(function(object){
-    //get rid of "All Applications in response"
-    if (object.name != "All Applications") {
-      let obj = {};
-      obj.name = object.name;
-      obj.client_id = object.client_id;
-      obj.rules = [];
-      leftover_rules_apps_array.push(obj);
-  }
-      //return leftover_rules_apps_array;
-  // // console.log(`application name is ${object.name} and client_id is ${object.client_id}`);
-  });
-  //****
-  fetch(rulesUrl, { method: 'GET', headers: headers})
-  .then((res) => {
-     return res.json()
-})
-  .then((json) => {
-
-    json.forEach(function (object){
-      if (object.script.includes("clientName" || "clientID")) {
-        var splitScript = object.script.split(' ');
-        var placeholder = splitScript.indexOf('client_id') + 2
-        var client_id = splitScript[placeholder];
-          client_id = client_id.replace(/[^\w\s]/gi, '')
-          client_id = strip(client_id)
-      
-          for(var i = 0; i < leftover_rules_apps_array.length; i++) {
-              if(client_id == leftover_rules_apps_array[i].client_id) {
-                leftover_rules_apps_array[i].rules.push(object.name);
-              } 
-            }
-          } else {
-            for (var i = 0; i < leftover_rules_apps_array.length; i++) {
-              leftover_rules_apps_array[i].rules.push(object.name);
-            }
-          }
-      });
-       console.log(leftover_rules_apps_array);
-    });
- });
- 
-  function strip(s) {
-      return s.split('').filter(function (x) {
-          var n = x.charCodeAt(0);
-
-          return 31 < n && 127 > n;
-      }).join('');
-      return(s)
-  }
+     //return res.json()
+     console.log("done logged out")
+  })}
 
 http.createServer(app).listen(process.env.PORT, () => {
   console.log(`listening on ${appUrl}`);
