@@ -1,7 +1,4 @@
 
-<% include /Users/tyfrith/dev/okta/app/views/functions.ejs %>
-
-
 <!DOCTYPE html>
 <html lang="en">
 
@@ -19,9 +16,8 @@
   <meta http-equiv="X-UA-Compatible" content="ie=edge">
   <title>Okta Tech Exercise</title>
 </head>
+
 <body style="font-family: Montserrat" >
-  
-<!-- <h1 style="text-align:center">Weather App</h1> -->
 
    <div id="widget_container"></div>
 
@@ -41,44 +37,69 @@
       </fieldset>
     </div>
 
-   <div id="message_box" style="text-align:center">Hi there, you aren't logged in</div>
-
-
-   <div style="text-align:center;">
-  <button id=logout_button onClick='logout(reload)'></button>
-  <!--   <button id=logout_button onClick='logout()'></button> -->
+   <div id="message_box">
+    <h3>Hi there! You aren't logged in</h3>
    </div>
+   
+  <div style="text-align:center">
+     <input type="image" src="http://icons.iconarchive.com/icons/icons8/windows-8/32/User-Interface-Logout-icon.png" id="logout_button" onClick='logout()'/>
+  </div> 
 
 
 <script type="text/javascript">
+
+// function callTestApi() {
+//   //var accessToken = oktaSignIn.authtokenManager.get("accessToken");
+//   var accessToken = oktaSignIn.authClient.authtokenManager.accessToken;
+
+//   if (!accessToken) {
+//     return;
+//   }
+
+//   // Make the request using jQuery
+//   $.ajax({
+//     url: 'http://localhost:3000/test',
+//     headers: {
+//       Authorization : 'Bearer ' + accessToken
+//     },
+//     success: function(response) {
+//       // Received messages!
+//       console.log('Messages', response);
+//       res.render('test');
+//     },
+//     error: function(response) {
+//       console.error(response);
+//     }
+//   });
+// }
+
+
   var oktaSignIn = new OktaSignIn({
     baseUrl: 'https://dev-247908.okta.com',
-    //redirectUri: window.location.origin,
     redirectUri: 'http://localhost:3000',
     clientId: '0oafc88caXF4KFOmU4x6',
+    logo: 'http://icons.iconarchive.com/icons/icons8/windows-8/512/Weather-Partly-Cloudy-Day-icon.png',
     authParams: {
       pkce: true,
+      //try adding access token?
       responseType: ['token', 'id_token']
-      //display: page
     }
   });
 
   oktaSignIn.authClient.session.get().then(function (res) {
 
-  // Session exists, show logged in state.
     if (res.status === 'ACTIVE') {
-      console.log('Welcome back, ' + res.login);
-      document.getElementById("message_box").innerHTML = `Welcome back, ` + res.login;
-      document.getElementById("logout_button").innerHTML = `Logout`;
-      return;
+
       oktaSignIn.authClient.token.getWithoutPrompt({
         scopes: ['openid', 'email', 'profile'],
       }).then((tokens) => {
         tokens.forEach(token => {
           if (token.idToken) {
             oktaSignIn.authClient.tokenManager.add('idToken', token);
+            console.log('added token to tokenManager')
           }
           if (token.accessToken) {
+            console.log('added accessToken to tokenManager')
             oktaSignIn.authClient.tokenManager.add('accessToken', token);
           }
         });
@@ -87,20 +108,23 @@
         oktaSignIn.authClient.tokenManager.get('idToken').then(idToken => {
           console.log(`Hello, ${idToken.claims.name} (${idToken.claims.email})`);
           document.getElementById("message_box").innerHTML = `Hello, ${idToken.claims.name} (${idToken.claims.email})`
-          document.getElementById("logout_button").innerHTML = `Logout`;
+          document.getElementById("logout_button").show
+
+          callTestApi();
        });
       
       }).catch(error => console.error(error));
-     // return;
-    }
+      return;
+
+   }
 
     document.getElementById("weather_container").style.display = 'none';
+    document.getElementById("logout_button").style.display = 'none';
 
     // No session, show the login form
     oktaSignIn.renderEl(
       {el: '#widget_container'},
       function success(res) {
-        // document.getElementById("weather_container").style.display = 'none';
         // Nothing to do in this case, the widget will automatically redirect
         // the user to Okta for authentication, then back to this page if successful
       },
@@ -111,32 +135,11 @@
     );
   });
       
-      function logout(other) {
-        if (oktaSignIn.authClient.signOut()) {
+    function logout() {
 
-          other();
-        }
-
+        oktaSignIn.authClient.signOut()
+        window.location.reload(true);
       }
-
-      function reload() {
-     // window.location.reload(true);
-        //onsole.log("RELOAD");
-      }
-
-  //     var logoutURL = " https://dev-247908.okta.com/logout";
-
-  //     var headers = {
-  //       "id_token_hint": 'oktaSignIn.authClient.tokenManager.token',
-  //       "post_logout_redirect_uri": 'http://localhost:3000'
-  //       }
-
-  //     function logout() {
-  //       fetch(logoutURL, { method: 'GET', headers: headers})
-  //         .then((res) => {
-  //         //return res.json()
-  //           console.log("done logged out")
-  // })}
 
 </script> 
 </body>
